@@ -114,6 +114,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   // where daysToStockout = stock / dailyConsumption
   // Higher score = higher emergency risk
   // Factors: consumption speed, delivery delay (transport time), medicine importance
+  const emergencyScores = phcs.flatMap((phc) =>
+    medicines.map((med) => {
+      const phcStockData = phc.stockLevels[med.id];
+      if (!phcStockData) return null;
+      const daysToStockout = phcStockData.dailyConsumption > 0
+        ? Math.ceil(phcStockData.stock / phcStockData.dailyConsumption)
+        : 999;
+      const emergencyScore = med.importance * 10 + (30 - Math.min(daysToStockout, 30));
+      return {
+        med,
+        phc,
+        emergencyScore,
+        daysToStockout,
+        importance: med.importance,
+        dailyConsumption: phcStockData.dailyConsumption,
+      };
+    }).filter((item): item is NonNullable<typeof item> => item !== null)
+  ).sort((a, b) => b.emergencyScore - a.emergencyScore);
+
   const unexpectedDemandFlags = medicines.map((med) => {
     // Get recent consumption (last 7 days) vs historical average (30 days)
     const phc = phcs[0]; // Use base PHC for detection
@@ -138,16 +157,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       medicineName: med.name,
       historicalAvg: Math.round(historicalAvg),
       recentAvg: Math.round(recentAvg),
-      spikeFactor: (recentAvg / historicalAvg).toFixed(2),
+      spikeFactor: Number((recentAvg / historicalAvg).toFixed(2)),
       spikeDetected,
     };
-  }).filter((d: any) => d !== null);
+  }).filter((d): d is NonNullable<typeof d> => d !== null);
 
   // Sort by spike severity (highest factor first)
-  unexpectedDemandFlags.sort((a, b) => (b as { spikeFactor: number }).spikeFactor - (a as { spikeFactor: number }).spikeFactor);
-
-  // Get donor ranking for a medicine at a PHC
-  const getDonorRanking = (medicineId: string, targetPHC: PHCCenter) => {
+  unexpectedDemandFlags.sort((a, b) => b.spikeFactor - a.spikeFactor);
 
   // Get donor ranking for a medicine at a PHC
   const getDonorRanking = (medicineId: string, targetPHC: PHCCenter) => {
@@ -497,7 +513,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <table className="w-full text-sm">
             <thead>
               <tr>
-                <th className="left border border-slate-200 p-2 text-left font-bold text-slate-600 {language === 'ta' ? 'w-40' : 'w-24'}">PHC</th>
+                <th className={`left border border-slate-200 p-2 text-left font-bold text-slate-600 ${language === 'ta' ? 'w-40' : 'w-24'}`}>PHC</th>
                 {medicines.slice(0, 8).map((med) => (
                   <th key={med.id} className="border border-slate-200 p-2 text-left font-bold text-slate-600">
                     {med.name}
@@ -533,9 +549,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                       <td key={d.med.id} className="border border-slate-200 p-2 align-middle">
                         <div className="text-slate-700 font-medium">{d.stock} {d.med.unit}</div>
                         <div className="text-[10px] text-slate-500">{d.dailyConsumption.toFixed(1)}/day</div>
-                        <div className="text-[10px] {
+                        <div className={`text-[10px] ${
                           d.daysUntilStockout <= 3 ? 'text-rose-600' : d.daysUntilStockout <= 7 ? 'text-amber-600' : 'text-teal-600'
-                        } font-medium">
+                        } font-medium`}>
                           {d.daysUntilStockout}d
                         </div>
                         <div className="text-[10px] text-slate-400">{d.expiry}</div>
