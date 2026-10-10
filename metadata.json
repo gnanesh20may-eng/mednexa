@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix MediFlow AI - Rural PHC Medicine Rescue \u0026 Inventory",
+  "description": "Native-style Android healthcare app for rural Primary Health Centres to prevent medicine shortages, predict stockout risks, and rescue expiring medicines via inter-PHC transfers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
